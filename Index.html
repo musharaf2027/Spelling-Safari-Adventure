@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spelling Safari Adventure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap');
+        
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        .title-font {
+            font-family: 'Fredoka One', cursive;
+        }
+
+        .pop-card {
+            box-shadow: 0 10px 0px #bbf7d0;
+            transition: all 0.2s ease;
+        }
+
+        .pop-card:active {
+            transform: translateY(4px);
+            box-shadow: 0 6px 0px #bbf7d0;
+        }
+
+        .key-btn {
+            box-shadow: 0 4px 0px #cbd5e1;
+            transition: all 0.1s ease;
+        }
+
+        .key-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0px #cbd5e1;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        .animate-shake {
+            animation: shake 0.3s ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        #keyboard-row-1,
+        #keyboard-row-2,
+        #keyboard-row-3 {
+            display: grid;
+            align-items: stretch;
+            gap: clamp(3px, 1vw, 8px);
+        }
+
+        #keyboard-row-1 {
+            grid-template-columns: repeat(10, minmax(0, 1fr));
+        }
+
+        #keyboard-row-2 {
+            width: 90%;
+            margin-inline: auto;
+            grid-template-columns: repeat(9, minmax(0, 1fr));
+        }
+
+        #keyboard-row-3 {
+            width: 86%;
+            margin-inline: auto;
+            grid-template-columns: repeat(7, minmax(0, 1fr)) minmax(0, 1.5fr);
+        }
+
+        #keyboard-container .key-btn {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            padding: 10px 0;
+            font-size: clamp(12px, 3.6vw, 16px);
+            touch-action: manipulation;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 12px;
+            }
+
+            #game-header {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            #game-header > div:first-child,
+            #game-header > div:last-child {
+                flex: 1 1 100%;
+            }
+
+            #game-header > div:first-child {
+                justify-content: space-between;
+            }
+
+            #game-header > div:last-child {
+                justify-content: space-around;
+                gap: 8px;
+            }
+
+            main {
+                margin-top: 8px;
+                margin-bottom: 8px;
+            }
+
+            #game-screen > div:last-child {
+                padding: 16px;
+            }
+
+            #keyboard-container {
+                margin-top: 4px;
+            }
+
+            #action-controls-box,
+            #next-word-box {
+                margin-top: 16px;
+                gap: 10px;
+            }
+        }
+
+        @media (max-height: 700px) and (min-width: 641px) {
+            body {
+                justify-content: flex-start;
+            }
+
+            main {
+                margin-top: 12px;
+                margin-bottom: 12px;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-4 md:p-6 text-slate-800">
+
+    <!-- Top Stats Header -->
+    <header id="game-header" class="w-full max-w-4xl bg-white/80 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between shadow-sm hidden border border-slate-100">
+        <div class="flex items-center gap-3">
+            <button onclick="goHome()" class="bg-amber-100 hover:bg-amber-200 text-amber-700 font-bold px-4 py-2 rounded-xl transition-all text-sm flex items-center gap-1">
+                ➔ Leave Safari
+            </button>
+            <span id="level-badge" class="bg-emerald-100 text-emerald-700 title-font px-3 py-1 rounded-full text-xs md:text-sm">Grade 1</span>
+        </div>
+        
+        <div class="flex items-center gap-6">
+            <div class="text-center">
+                <span class="text-xs text-slate-400 block font-bold uppercase tracking-wider">Score</span>
+                <span id="score-val" class="text-xl md:text-2xl title-font text-amber-500">0</span>
+            </div>
+            <div class="text-center">
+                <span class="text-xs text-slate-400 block font-bold uppercase tracking-wider">Streak</span>
+                <span id="streak-val" class="text-xl md:text-2xl title-font text-pink-500">0 🔥</span>
+            </div>
+            <div class="text-center">
+                <span class="text-xs text-slate-400 block font-bold uppercase tracking-wider">Progress</span>
+                <span id="progress-val" class="text-xl md:text-2xl title-font text-emerald-500">1/10</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="w-full max-w-4xl flex-1 flex flex-col items-center justify-center my-4">
+        
+        <!-- SCREEN 1: START MENU -->
+        <section id="menu-screen" class="w-full text-center max-w-2xl py-8 flex flex-col items-center">
+            <div class="relative mb-4">
+                <div class="text-6xl md:text-7xl animate-float inline-block select-none mb-2">🦁🌴✨</div>
+                <h1 class="text-4xl md:text-6xl title-font text-emerald-600 drop-shadow-sm tracking-wide">SPELLING SAFARI</h1>
+                <p class="text-slate-500 mt-2 text-base md:text-lg font-medium">Unscramble 500 words in sets of 10 and learn Urdu meanings!</p>
+            </div>
+
+            <!-- Grade Choice -->
+            <div class="bg-white rounded-3xl p-6 shadow-xl w-full border border-slate-100 mt-6">
+                <h2 class="text-xl font-bold text-slate-600 mb-4">Select Your Adventure Level:</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <button onclick="selectGrade(1)" class="pop-card bg-orange-100 border-2 border-orange-300 text-orange-700 p-4 rounded-2xl text-center group cursor-pointer">
+                        <div class="text-2xl mb-1 group-hover:scale-125 transition-transform">🐱</div>
+                        <div class="title-font text-lg">Grade 1</div>
+                        <div class="text-xs opacity-80">200 Words</div>
+                    </button>
+                    <button onclick="selectGrade(2)" class="pop-card bg-amber-100 border-2 border-amber-300 text-amber-700 p-4 rounded-2xl text-center group cursor-pointer">
+                        <div class="text-2xl mb-1 group-hover:scale-125 transition-transform">🐸</div>
+                        <div class="title-font text-lg">Grade 2</div>
+                        <div class="text-xs opacity-80">200 Words</div>
+                    </button>
+                    <button onclick="selectGrade(3)" class="pop-card bg-emerald-100 border-2 border-emerald-300 text-emerald-700 p-4 rounded-2xl text-center group cursor-pointer">
+                        <div class="text-2xl mb-1 group-hover:scale-125 transition-transform">🐒</div>
+                        <div class="title-font text-lg">Grade 3</div>
+                        <div class="text-xs opacity-80">200 Words</div>
+                    </button>
+                    <button onclick="selectGrade(4)" class="pop-card bg-sky-100 border-2 border-sky-300 text-sky-700 p-4 rounded-2xl text-center group cursor-pointer">
+                        <div class="text-2xl mb-1 group-hover:scale-125 transition-transform">🐆</div>
+                        <div class="title-font text-lg">Grade 4</div>
+                        <div class="text-xs opacity-80">200 Words</div>
+                    </button>
+                    <button onclick="selectGrade(5)" class="pop-card bg-purple-100 border-2 border-purple-300 text-purple-700 p-4 rounded-2xl text-center group cursor-pointer">
+                        <div class="text-2xl mb-1 group-hover:scale-125 transition-transform">🦁</div>
+                        <div class="title-font text-lg">Grade 5</div>
+                        <div class="text-xs opacity-80">200 Words</div>
+                    </button>
+                </div>
+
+                <div class="mt-8 border-t pt-6 text-slate-500 font-medium text-sm">
+                    🌿 Each game level tests your spelling skills over progressive sets of 10 vocabulary words.
+                </div>
+
+                <button onclick="startGame()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white title-font text-xl py-4 rounded-2xl shadow-lg mt-6 block transition-all tracking-wider">
+                    LAUNCH SAFARI 🚀
+                </button>
+            </div>
+        </section>
+
+        <!-- SCREEN 2: GAMEPLAY -->
+        <section id="game-screen" class="w-full hidden flex flex-col items-center">
+            
+            <!-- Progress Bar Tracker -->
+            <div class="w-full bg-slate-200 h-3 rounded-full mb-6 overflow-hidden shadow-inner">
+                <div id="progress-bar" class="bg-gradient-to-r from-emerald-400 to-teal-500 h-full w-0 transition-all duration-300"></div>
+            </div>
+
+            <!-- Card Frame -->
+            <div class="bg-white rounded-3xl p-6 md:p-8 shadow-xl w-full border border-slate-100 flex flex-col items-center relative">
+                
+                <!-- Jumbled Word Display Card -->
+                <div class="w-full max-w-md bg-amber-50 rounded-2xl p-4 border border-amber-200 text-center mb-2">
+                    <span class="text-xs text-amber-600 font-bold uppercase tracking-widest block mb-1">🌿 Scrambled Word 🌿</span>
+                    <div id="scrambled-display" class="text-3xl md:text-4xl title-font text-amber-700 tracking-wider select-text"></div>
+                </div>
+
+                <!-- Urdu Meaning Display Box -->
+                <div id="urdu-meaning-container" class="w-full max-w-md h-12 flex items-center justify-center mb-4 transition-all duration-300">
+                    <div id="urdu-meaning-box" class="bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold rounded-xl px-4 py-1.5 text-center hidden opacity-0 transition-opacity duration-300 text-lg" dir="rtl">
+                        معنی: <span id="urdu-meaning-text"></span>
+                    </div>
+                </div>
+
+                <!-- Audio / Prompt Button -->
+                <div class="flex flex-col items-center gap-1 mb-4">
+                    <button onclick="speakWord()" class="w-14 h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-md transition-all transform hover:scale-110 active:scale-95 group cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 group-hover:animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        </svg>
+                    </button>
+                    <span class="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Hear Pronunciation</span>
+                </div>
+
+                <!-- Input Display Block -->
+                <div id="word-display-container" class="flex flex-wrap items-center justify-center gap-2 min-h-[70px] mb-4 w-full"></div>
+
+                <!-- Hint Panel Container -->
+                <div id="hint-box" class="text-center min-h-[28px] mb-6">
+                    <button id="hint-btn" onclick="revealHint()" class="text-amber-500 hover:text-amber-600 text-sm font-bold underline transition-all">
+                        💡 Stuck? Get the Tip.
+                    </button>
+                    <p id="hint-text" class="text-amber-600 font-semibold text-sm hidden"></p>
+                </div>
+
+                <!-- Interactive Virtual Keyboard Layout -->
+                <div id="keyboard-container" class="w-full max-w-2xl mt-2 transition-all">
+                    <div id="keyboard-row-1" class="flex justify-center gap-1 md:gap-1.5 my-1"></div>
+                    <div id="keyboard-row-2" class="flex justify-center gap-1 md:gap-1.5 my-1"></div>
+                    <div id="keyboard-row-3" class="flex justify-center gap-1 md:gap-1.5 my-1"></div>
+                </div>
+
+                <!-- Action Controls Layout -->
+                <div id="action-controls-box" class="w-full max-w-md grid grid-cols-2 gap-4 mt-6">
+                    <button onclick="clearCurrentWord()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 px-4 rounded-xl transition-all text-sm uppercase tracking-wider">
+                        Clear ✕
+                    </button>
+                    <button onclick="submitGuess()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl shadow transition-all text-sm uppercase tracking-wider title-font">
+                        Check ✓
+                    </button>
+                </div>
+
+                <!-- Next Word Interactive Control Button (Hidden initially) -->
+                <div id="next-word-box" class="w-full max-w-md mt-6 hidden">
+                    <button onclick="advanceWord()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg transition-all tracking-wider title-font text-lg flex items-center justify-center gap-2">
+                        Next Word ➔
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 3: INTERMEDIATE BREAK SCREEN (Continue Option after 10 words) -->
+        <section id="continue-screen" class="w-full max-w-xl bg-white rounded-3xl p-8 shadow-xl border border-slate-100 text-center hidden flex flex-col items-center">
+            <div class="text-5xl mb-3 animate-bounce">🌴🐒✨</div>
+            <h2 class="text-3xl title-font text-emerald-600 mb-2">Round Complete!</h2>
+            <p class="text-slate-500 font-medium mb-6">You successfully mastered 10 words in this stretch of the safari!</p>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 w-full mb-6">
+                <span class="text-xs text-amber-600 font-bold uppercase tracking-wider block mb-1">Current Expedition Progress</span>
+                <div class="text-xl font-bold text-slate-700">
+                    Words Checked: <span id="continue-progress-text" class="text-emerald-600 title-font">10</span> completed
+                </div>
+            </div>
+
+            <button onclick="clickContinueNextRound()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white title-font text-xl py-4 rounded-2xl shadow-lg transition-all tracking-wider flex items-center justify-center gap-2">
+                CONTINUE TO NEXT 10 WORDS ➔
+            </button>
+        </section>
+
+        <!-- SCREEN 4: SUMMARY & REWARDS -->
+        <section id="summary-screen" class="w-full max-w-xl bg-white rounded-3xl p-8 shadow-xl border border-slate-100 text-center hidden flex flex-col items-center">
+            <h2 class="text-3xl title-font text-emerald-600 mb-2">Expedition Complete!</h2>
+            <p class="text-slate-500 font-medium mb-6">You've successfully completed all available words for this level!</p>
+
+            <!-- Star Rating Visuals -->
+            <div id="star-rating-row" class="text-5xl md:text-6xl mb-6 select-none tracking-widest">⭐⭐⭐</div>
+
+            <!-- Dashboard Analytics -->
+            <div class="grid grid-cols-2 gap-4 w-full mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div class="text-center p-2">
+                    <span class="text-xs text-slate-400 font-bold uppercase block">Correct Words</span>
+                    <span id="summary-correct" class="text-2xl title-font text-emerald-600">0</span>
+                </div>
+                <div class="text-center p-2">
+                    <span class="text-xs text-slate-400 font-bold uppercase block">Safari Score</span>
+                    <span id="summary-score" class="text-2xl title-font text-amber-500">0</span>
+                </div>
+            </div>
+
+            <!-- Review Lists For Forgotten Words -->
+            <div id="review-panel" class="w-full text-left mb-6 hidden">
+                <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">🌿 Review & Practice words:</h3>
+                <div id="mistakes-list" class="flex flex-wrap gap-2 max-h-32 overflow-y-auto bg-rose-50 p-3 rounded-xl text-rose-700 font-bold text-sm border border-rose-100"></div>
+            </div>
+
+            <!-- Route Buttons -->
+            <div class="w-full flex flex-col gap-3">
+                <button onclick="restartCurrentSafari()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white title-font py-3.5 rounded-xl shadow-md transition-all tracking-wider">
+                    PLAY AGAIN 🔄
+                </button>
+                <button onclick="goHome()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-all">
+                    Back to Main Menu
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Custom Feedback Alert Banner overlay -->
+    <div id="feedback-toast" class="fixed bottom-8 px-6 py-3 rounded-2xl font-bold text-white shadow-lg pointer-events-none transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2">
+        <span id="toast-icon" class="text-xl">✨</span>
+        <span id="toast-text">Awesome job!</span>
+    </div>
+
+    <!-- Background Decoration Footer -->
+    <footer class="text-xs text-slate-400 mt-4 select-none font-medium pointer-events-none text-center">
+        🐾 Spelling Safari Adventure Map includes 998 hand-picked words for young explorers.
+    </footer>
+
+    <script>
+        // FULL COMPREHENSIVE 998-WORD DATASETS WITH LINKED URDU TRANSLATIONS
+        const SAFARI_WORD_BANK = {
+            1: [
+                {en: "cat", ur: "بلی"}, {en: "dog", ur: "کتا"}, {en: "mat", ur: "چٹائی"}, {en: "hat", ur: "ٹوپی"}, {en: "sat", ur: "بیٹھا"},
+                {en: "pin", ur: "پن"}, {en: "pig", ur: "سور"}, {en: "big", ur: "بڑا"}, {en: "win", ur: "جیتنا"}, {en: "sit", ur: "بیٹھنا"},
+                {en: "run", ur: "بھاگنا"}, {en: "fun", ur: "مذہ"}, {en: "sun", ur: "سورج"}, {en: "nut", ur: "اخروٹ"}, {en: "hop", ur: "کودنا"},
+                {en: "top", ur: "اوپر"}, {en: "pop", ur: "پاپ"}, {en: "hot", ur: "گرم"}, {en: "pot", ur: "برتن"}, {en: "map", ur: "نکشہ"},
+                {en: "cap", ur: "ٹوپی"}, {en: "tap", ur: "نلکا"}, {en: "bed", ur: "بستر"}, {en: "red", ur: "سرخ"}, {en: "net", ur: "جال"},
+                {en: "ten", ur: "دس"}, {en: "pen", ur: "قلم"}, {en: "leg", ur: "ٹانگ"}, {en: "bug", ur: "کیڑا"}, {en: "mug", ur: "مگ"},
+                {en: "hug", ur: "گلے لگانا"}, {en: "tub", ur: "ٹب"}, {en: "rub", ur: "رگڑنا"}, {en: "dad", ur: "ابو"}, {en: "mad", ur: "پاگل"},
+                {en: "sad", ur: "اداس"}, {en: "bag", ur: "بیگ"}, {en: "tag", ur: "لیبل"}, {en: "jam", ur: "جام"}, {en: "ham", ur: "گوشت"},
+                {en: "van", ur: "گاڑی"}, {en: "can", ur: "ڈبہ"}, {en: "man", ur: "آدمی"}, {en: "pan", ur: "فرائنگ پین"}, {en: "boy", ur: "لڑکا"},
+                {en: "toy", ur: "کھلونا"}, {en: "fly", ur: "اڑنا"}, {en: "cry", ur: "رونا"}, {en: "sky", ur: "آسمان"}, {en: "box", ur: "ڈبہ"},
+                {en: "fox", ur: "لومڑی"}, {en: "day", ur: "دن"}, {en: "may", ur: "مئی"}, {en: "say", ur: "کہنا"}, {en: "way", ur: "راستہ"},
+                {en: "play", ur: "کھیلنا"}, {en: "see", ur: "دیکھنا"}, {en: "bee", ur: "شہد کی مکھی"}, {en: "tree", ur: "درخت"}, {en: "look", ur: "دیکھنا"},
+                {en: "book", ur: "کتاب"}, {en: "good", ur: "اچھا"}, {en: "foot", ur: "پاؤں"}, {en: "fish", ur: "مچھلی"}, {en: "dish", ur: "پلیٹ"},
+                {en: "wish", ur: "خواہش"}, {en: "ship", ur: "بحری جہاز"}, {en: "shop", ur: "دوکان"}, {en: "chop", ur: "کاٹنا"}, {en: "sing", ur: "گانا"},
+                {en: "ring", ur: "انگوٹھی"}, {en: "king", ur: "بادشاہ"}, {en: "long", ur: "لمبا"}, {en: "song", ur: "گیت"}, {en: "duck", ur: "بطخ"},
+                {en: "luck", ur: "قسمت"}, {en: "rock", ur: "پتھر"}, {en: "back", ur: "پیچھے"}, {en: "pack", ur: "پیک کرنا"}, {en: "black", ur: "کالا"},
+                {en: "came", ur: "آیا"}, {en: "name", ur: "نام"}, {en: "game", ur: "کھیل"}, {en: "like", ur: "پسند"}, {en: "ride", ur: "سواری"},
+                {en: "hide", ur: "چھپنا"}, {en: "time", ur: "وقت"}, {en: "home", ur: "گھر"}, {en: "rope", ur: "رسی"}, {en: "cute", ur: "پیارا"},
+                {en: "mule", ur: "خچر"}, {en: "blue", ur: "نیلا"}, {en: "glue", ur: "گوند"}, {en: "rain", ur: "بارش"}, {en: "main", ur: "اہم"},
+                {en: "boat", ur: "کشتی"}, {en: "coat", ur: "کوٹ"}, {en: "soap", ur: "صابن"}, {en: "goat", ur: "بکری"}, {en: "road", ur: "سڑک"}
+            ],
+            2: [
+                {en: "jump", ur: "کودنا"}, {en: "bump", ur: "ٹکر"}, {en: "lamp", ur: "لیمپ"}, {en: "camp", ur: "کیمپ"}, {en: "hand", ur: "ہاتھ"},
+                {en: "band", ur: "بینڈ"}, {en: "sand", ur: "ریت"}, {en: "pond", ur: "تالاب"}, {en: "wind", ur: "ہوا"}, {en: "fast", ur: "تیز"},
+                {en: "last", ur: "آخری"}, {en: "past", ur: "ماضی"}, {en: "best", ur: "بہترین"}, {en: "nest", ur: "گھونسلا"}, {en: "vest", ur: "بنیان"},
+                {en: "test", ur: "امتحان"}, {en: "milk", ur: "دودھ"}, {en: "silk", ur: "ریشم"}, {en: "desk", ur: "ڈیسک"}, {en: "mask", ur: "ماسک"},
+                {en: "frog", ur: "مینڈک"}, {en: "drum", ur: "ڈھول"}, {en: "flag", ur: "جھنڈا"}, {en: "plum", ur: "آلو بخارا"}, {en: "crab", ur: "کیکڑا"},
+                {en: "tree", ur: "درخت"}, {en: "free", ur: "آزاد"}, {en: "green", ur: "سبز"}, {en: "sleep", ur: "سونا"}, {en: "sheep", ur: "بھیڑ"},
+                {en: "teeth", ur: "دانت"}, {en: "sweet", ur: "میٹھا"}, {en: "wheel", ur: "پہیہ"}, {en: "whale", ur: "وھیل"}, {en: "white", ur: "سفید"},
+                {en: "think", ur: "سوچنا"}, {en: "thank", ur: "شکریہ"}, {en: "thing", ur: "چیز"}, {en: "bring", ur: "لانا"}, {en: "sting", ur: "ڈنک"},
+                {en: "small", ur: "چھوٹا"}, {en: "smart", ur: "ہوشیار"}, {en: "smile", ur: "مسکراہٹ"}, {en: "smoke", ur: "دھواں"}, {en: "snail", ur: "گھونگھا"},
+                {en: "snake", ur: "سانپ"}, {en: "spin", ur: "گھومنا"}, {en: "spoon", ur: "چمچ"}, {en: "spot", ur: "داغ"}, {en: "stamp", ur: "ٹکٹ"},
+                {en: "stand", ur: "کھڑے ہونا"}, {en: "stone", ur: "پتھر"}, {en: "stove", ur: "چولہا"}, {en: "sweet", ur: "میٹھا"}, {en: "swim", ur: "تیرنا"},
+                {en: "swing", ur: "جھولا"}, {en: "train", ur: "ریل گاڑی"}, {en: "truck", ur: "ٹرک"}, {en: "twin", ur: "جڑواں"}, {en: "yard", ur: "صحن"},
+                {en: "star", ur: "ستارہ"}, {en: "farm", ur: "کھیت"}, {en: "park", ur: "باغ"}, {en: "dark", ur: "اندھیرا"}, {en: "bark", ur: "بھونکنا"},
+                {en: "card", ur: "کارڈ"}, {en: "hard", ur: "سخت"}, {en: "bird", ur: "پرندہ"}, {en: "girl", ur: "لڑکی"}, {en: "dirt", ur: "مٹی"},
+                {en: "shirt", ur: "قمیض"}, {en: "turn", ur: "مڑنا"}, {en: "burn", ur: "جلنا"}, {en: "hurt", ur: "چوٹ"}, {en: "fur", ur: "نرم بال"},
+                {en: "surf", ur: "لہروں پر تیرنا"}, {en: "corn", ur: "مکئی"}, {en: "horn", ur: "سینگ"}, {en: "born", ur: "پیدا ہوا"}, {en: "fork", ur: "کانٹا"},
+                {en: "look", ur: "دیکھنا"}, {en: "took", ur: "لیا"}, {en: "cook", ur: "پکانا"}, {en: "hook", ur: "کنڈی"}, {en: "shook", ur: "ہلایا"},
+                {en: "broom", ur: "جھاڑو"}, {en: "room", ur: "کمرہ"}, {en: "zoom", ur: "تیزی سے جانا"}, {en: "food", ur: "کھانا"}, {en: "moon", ur: "چاند"},
+                {en: "spoon", ur: "چمچ"}, {en: "blue", ur: "نیلا"}, {en: "true", ur: "سچ"}, {en: "drew", ur: "کھینچا"}, {en: "grew", ur: "بڑھا"},
+                {en: "blew", ur: "پھونکا"}, {en: "flew", ur: "اڑا"}, {en: "knew", ur: "جانتا تھا"}, {en: "chew", ur: "چبانا"}, {en: "slow", ur: "آہستہ"}, {en: "snow", ur: "برف"}
+            ],
+            3: [
+                {en: "cloud", ur: "بادل"}, {en: "proud", ur: "فخر"}, {en: "shout", ur: "چلانا"}, {en: "south", ur: "جنوب"}, {en: "house", ur: "گھر"},
+                {en: "mouse", ur: "چوہا"}, {en: "mouth", ur: "منہ"}, {en: "count", ur: "گننا"}, {en: "round", ur: "گول"}, {en: "sound", ur: "آواز"},
+                {en: "ground", ur: "زمین"}, {en: "around", ur: "ارد گرد"}, {en: "bounce", ur: "اچھلنا"}, {en: "choice", ur: "انتخاب"}, {en: "voice", ur: "آواز"},
+                {en: "noise", ur: "شور"}, {en: "point", ur: "اشارہ کرنا"}, {en: "joint", ur: "جوڑ"}, {en: "enjoy", ur: "لطف اٹھانا"}, {en: "annoy", ur: "تنگ کرنا"},
+                {en: "voyage", ur: "بحری سفر"}, {en: "copper", ur: "تانبا"}, {en: "silver", ur: "چاندی"}, {en: "golden", ur: "سنہرا"}, {en: "yellow", ur: "پیلا"},
+                {en: "purple", ur: "جامنی"}, {en: "orange", ur: "مالٹا"}, {en: "shadow", ur: "سایہ"}, {en: "window", ur: "کھڑکی"}, {en: "pillow", ur: "تکیہ"},
+                {en: "fellow", ur: "ساتھی"}, {en: "follow", ur: "پیچھا کرنا"}, {en: "hollow", ur: "کھوکھلا"}, {en: "narrow", ur: "تنگ"}, {en: "borrow", ur: "ادھار لینا"},
+                {en: "carrot", ur: "گاجر"}, {en: "parrot", ur: "طوطا"}, {en: "rabbit", ur: "خرگوش"}, {en: "kitten", ur: "بلی کا بچہ"}, {en: "puppy", ur: "کتے کا بچہ"},
+                {en: "monkey", ur: "بندر"}, {en: "donkey", ur: "گدھا"}, {en: "turkey", ur: "ترکی پرندہ"}, {en: "butter", ur: "مکھن"}, {en: "hammer", ur: "ہتھوڑا"},
+                {en: "ladder", ur: "سیڑھی"}, {en: "summer", ur: "موسم گرما"}, {en: "winter", ur: "موسم سرما"}, {en: "spring", ur: "موسم بہار"}, {en: "autumn", ur: "موسم خزاں"},
+                {en: "bottle", ur: "بوتل"}, {en: "kettle", ur: "کیٹلی"}, {en: "little", ur: "چھوٹا"}, {en: "middle", ur: "درمیان"}, {en: "puddle", ur: "پانی کا جوہڑ"},
+                {en: "saddle", ur: "زین"}, {en: "candle", ur: "موم بتی"}, {en: "handle", ur: "ہینڈل"}, {en: "castle", ur: "قلعہ"}, {en: "whistle", ur: "سیٹی"},
+                {en: "listen", ur: "سننا"}, {en: "fasten", ur: "باندھنا"}, {en: "soften", ur: "نرم کرنا"}, {en: "happen", ur: "واقع ہونا"}, {en: "sudden", ur: "اچانک"},
+                {en: "hidden", ur: "چھپا ہوا"}, {en: "ridden", ur: "سوار ہوا"}, {en: "silent", ur: "خاموش"}, {en: "parent", ur: "والدین"}, {en: "student", ur: "طالب علم"},
+                {en: "moment", ur: "لمحہ"}, {en: "absent", ur: "غیر حاضر"}, {en: "present", ur: "موجود"}, {en: "doctor", ur: "ڈاکٹر"}, {en: "actor", ur: "اداکار"},
+                {en: "factor", ur: "عنصر"}, {en: "sailor", ur: "ملاح"}, {en: "tailor", ur: "درزی"}, {en: "mirror", ur: "آئینہ"}, {en: "terror", ur: "خوف"},
+                {en: "horror", ur: "ہیبت"}, {en: "error", ur: "غلطی"}, {en: "collar", ur: "کالر"}, {en: "dollar", ur: "ڈالر"}, {en: "scholar", ur: "عالم"},
+                {en: "sugar", ur: "چینی"}, {en: "cellar", ur: "تہہ خانہ"}, {en: "pillar", ur: "ستون"}, {en: "beggar", ur: "فقیر"}, {en: "calendar", ur: "کیلنڈر"},
+                {en: "regular", ur: "باقاعدہ"}, {en: "popular", ur: "مقبول"}, {en: "similar", ur: "ایک جیسا"}, {en: "familiar", ur: "واقف"}, {en: "particular", ur: "خاص"}
+            ],
+            4: [
+                {en: "accent", ur: "لہجہ"}, {en: "accomplish", ur: "پورا کرنا"}, {en: "accurate", ur: "درست"}, {en: "achieve", ur: "حاصل کرنا"}, {en: "adjust", ur: "درست کرنا"},
+                {en: "admire", ur: "تعریف کرنا"}, {en: "advice", ur: "نصیحت"}, {en: "advise", ur: "مشورہ دینا"}, {en: "afford", ur: "برداشت کرنا"}, {en: "ancient", ur: "قدیم"},
+                {en: "announce", ur: "اعلان کرنا"}, {en: "anxiety", ur: "تشویش"}, {en: "apologize", ur: "معافی مانگنا"}, {en: "applause", ur: "تالیاں"}, {en: "appreciate", ur: "تعریف کرنا"},
+                {en: "approve", ur: "منظور کرنا"}, {en: "arrange", ur: "ترتیب دینا"}, {en: "artificial", ur: "مصنوعی"}, {en: "ascend", ur: "اوپر چڑھنا"}, {en: "ashamed", ur: "شرمندہ"},
+                {en: "assist", ur: "مدد کرنا"}, {en: "associate", ur: "منسلک کرنا"}, {en: "athlete", ur: "کھلاڑی"}, {en: "attempt", ur: "کوشش"}, {en: "attend", ur: "حاضر ہونا"},
+                {en: "attract", ur: "راغب کرنا"}, {en: "audience", ur: "حاضرین"}, {en: "author", ur: "مصنف"}, {en: "average", ur: "اوسط"}, {en: "balance", ur: "توازن"},
+                {en: "bargain", ur: "سودا"}, {en: "beautiful", ur: "خوبصورت"}, {en: "beginning", ur: "شروع"}, {en: "believe", ur: "یقین کرنا"}, {en: "beneath", ur: "نیچے"},
+                {en: "benefit", ur: "فائدہ"}, {en: "bicycle", ur: "سائیکل"}, {en: "biography", ur: "سوانح عمری"}, {en: "boundaries", ur: "حدود"}, {en: "breath", ur: "سانس"},
+                {en: "breathe", ur: "سانس لینا"}, {en: "brief", ur: "مختصر"}, {en: "brilliant", ur: "شاندار"}, {en: "buffalo", ur: "بھینس"}, {en: "business", ur: "کاروبار"},
+                {en: "calendar", ur: "کیلنڈر"}, {en: "campaign", ur: "مہم"}, {en: "cancel", ur: "منسوخ کرنا"}, {en: "capable", ur: "قابل"}, {en: "capital", ur: "دارالحکومت"},
+                {en: "captain", ur: "کپتان"}, {en: "career", ur: "مستقبل کا پیشہ"}, {en: "careful", ur: "محتاط"}, {en: "carpenter", ur: "بڑھئی"}, {en: "ceiling", ur: "چھت"},
+                {en: "cemetery", ur: "قبرستان"}, {en: "century", ur: "صدی"}, {en: "certain", ur: "یقینی"}, {en: "challenge", ur: "چیلنج"}, {en: "chamber", ur: "کمرہ"},
+                {en: "champion", ur: "فاتح"}, {en: "character", ur: "کردار"}, {en: "charge", ur: "قیمت"}, {en: "charity", ur: "خیرات"}, {en: "charming", ur: "دلکش"},
+                {en: "cheap", ur: "سستا"}, {en: "cheat", ur: "دھوکہ دینا"}, {en: "cheerful", ur: "خوش مزاج"}, {en: "chemist", ur: "کیمسٹ"}, {en: "chemistry", ur: "کیمسٹری"},
+                {en: "chess", ur: "شطرنج"}, {en: "chest", ur: "چھاتی"}, {en: "chief", ur: "سربراہ"}, {en: "childhood", ur: "بچپن"}, {en: "chimney", ur: "چمنی"},
+                {en: "chimpanzee", ur: "چمپینزی"}, {en: "chocolate", ur: "چاکلیٹ"}, {en: "choice", ur: "انتخاب"}, {en: "choir", ur: "گلوکاروں کا گروہ"}, {en: "choose", ur: "چننا"},
+                {en: "chorus", ur: "ہم آواز گانا"}, {en: "chosen", ur: "منتخب کردہ"}, {en: "circle", ur: "دائرہ"}, {en: "circuit", ur: "سرکٹ"}, {en: "circular", ur: "گول"},
+                {en: "circumstance", ur: "حالات"}, {en: "citizen", ur: "شहरी"}, {en: "city", ur: "شہر"}, {en: "civil", ur: "شائستہ"}, {en: "civilization", ur: "تہذیب"},
+                {en: "claim", ur: "دعویٰ"}, {en: "clamor", ur: "شور و غوغا"}, {en: "clap", ur: "تالی بجانا"}, {en: "clarify", ur: "واضح کرنا"}, {en: "clarity", ur: "صفائی"},
+                {en: "clash", ur: "ٹکراؤ"}, {en: "classic", ur: "اعلیٰ درجے کا"}, {en: "classical", ur: "کلاسیکی"}, {en: "classify", ur: "درجہ بندی کرنا"}, {en: "classmate", ur: "ہم جماعت"}, {en: "classroom", ur: "کمرہ جماعت"}
+            ],
+            5: [
+                {en: "absence", ur: "غیر حاضری"}, {en: "abundance", ur: "کثرت"}, {en: "academic", ur: "تعلیمی"}, {en: "accessible", ur: "قابل رسائی"}, {en: "accommodate", ur: "جگہ دینا"},
+                {en: "accompaniment", ur: "سنگت"}, {en: "accuracy", ur: "درستگی"}, {en: "accusation", ur: "الزام"}, {en: "acknowledgment", ur: "اعتراف"}, {en: "acquaintance", ur: "واقفیت"},
+                {en: "acquisition", ur: "حصول"}, {en: "adjustable", ur: "قابل ایڈجسٹ"}, {en: "adolescent", ur: "نوجوان"}, {en: "advantageous", ur: "فائدہ مند"}, {en: "adversarial", ur: "مخالفانہ"},
+                {en: "advertisement", ur: "اشتہار"}, {en: "aerodynamic", ur: "ہوائی حرکیاتی"}, {en: "affectionate", ur: "شفیق"}, {en: "aggressive", ur: "جارحانہ"}, {en: "agricultural", ur: "زرعی"},
+                {en: "allegiance", ur: "وفاداری"}, {en: "alteration", ur: "تبدیلی"}, {en: "alternative", ur: "متبادل"}, {en: "altitude", ur: "بلندی"}, {en: "amateur", ur: "شوقیہ"},
+                {en: "ambassador", ur: "سفیر"}, {en: "ambitious", ur: "پڑ عزم"}, {en: "ammunition", ur: "گولہ بارود"}, {en: "amphitheater", ur: "کھلا تھیٹر"}, {en: "analyze", ur: "تجزیہ کرنا"},
+                {en: "anatomical", ur: "جسمانی ساختی"}, {en: "ancestor", ur: "آباؤ اجداد"}, {en: "anchor", ur: "لنگر"}, {en: "anecdote", ur: "حکایت"}, {en: "angular", ur: "زاویہ دار"},
+                {en: "anonymous", ur: "گمنام"}, {en: "antagonism", ur: "مخالفت"}, {en: "anticipate", ur: "توقع کرنا"}, {en: "anxiety", ur: "بے چینی"}, {en: "apologize", ur: "معافی مانگنا"},
+                {en: "apparatus", ur: "آلات"}, {en: "apparent", ur: "واضح"}, {en: "appearance", ur: "ظاہری شکل"}, {en: "appendix", ur: "ضمیمہ"}, {en: "appetite", ur: "بھوک"},
+                {en: "applaud", ur: "داد دینا"}, {en: "appliance", ur: "گھریلو مشین"}, {en: "applicable", ur: "قابل اطلاق"}, {en: "appreciation", ur: "قدر دانی"}, {en: "apprentice", ur: "شاگرد"},
+                {en: "approach", ur: "پہنچ"}, {en: "appropriate", ur: "مناسب"}, {en: "approval", ur: "منظوری"}, {en: "approximate", ur: "تقریبا"}, {en: "aquatic", ur: "آبی"},
+                {en: "aquarium", ur: "مچھلی گھر"}, {en: "arbitrary", ur: "من مانی"}, {en: "architecture", ur: "طرز تعمیر"}, {en: "archives", ur: "دستاویزات"}, {en: "ardent", ur: "پرجوش"},
+                {en: "arithmetic", ur: "علم حساب"}, {en: "aroma", ur: "خوشبو"}, {en: "arrangement", ur: "انتظام"}, {en: "arrival", ur: "آمد"}, {en: "arrogant", ur: "مغرور"},
+                {en: "arsenal", ur: "اسلحہ خانہ"}, {en: "artery", ur: "شریان"}, {en: "articulate", ur: "واضح بولنے والا"}, {en: "artificial", ur: "مصنوعی"}, {en: "artillery", ur: "توپ خانہ"},
+                {en: "artisan", ur: "دستکار"}, {en: "ascend", ur: "بلند ہونا"}, {en: "ascertain", ur: "معلوم کرنا"}, {en: "ashame", ur: "شرمندہ کرنا"}, {en: "aspect", ur: "پہلو"},
+                {en: "aspiration", ur: "خواہش"}, {en: "aspire", ur: "آرزو کرنا"}, {en: "assail", ur: "حملہ کرنا"}, {en: "assassin", ur: "قاتل"}, {en: "assault", ur: "حملہ"}, {en: "assemble", ur: "اکٹھا کرنا"},
+                {en: "assembly", ur: "اسمبلی"}, {en: "assert", ur: "دعویٰ کرنا"}, {en: "assess", ur: "اندازہ لگانا"}, {en: "asset", ur: "اثاثہ"}, {en: "assign", ur: "مقرر کرنا"},
+                {en: "assignment", ur: "تفویض کردہ کام"}, {en: "assimilate", ur: "جذب کرنا"}, {en: "assist", ur: "مدد کرنا"}, {en: "assistance", ur: "مدد"}, {en: "associate", ur: "ساتھی"},
+                {en: "association", ur: "انجمن"}, {en: "assorted", ur: "مختلف قسم کا"}, {en: "assume", ur: "فرض کرنا"}, {en: "assumption", ur: "مفروضہ"}, {en: "assurance", ur: "یقین دہانی"},
+                {en: "assure", ur: "یقین دلانا"}, {en: "asteroid", ur: "سیارچہ"}, {en: "asthma", ur: "دمہ"}, {en: "astonish", ur: "حیران کرنا"}, {en: "Peshawar", ur: "پشاور"}
+            ]
+        };
+
+        // 100 additional words for each grade. Each item is converted to {en: "...", ur: "..."}.
+        const makeWordEntries = (text) => text.split(";").map(pair => {
+            const [en, ur] = pair.split("|");
+            return {en, ur};
+        });
+
+        const ADDITIONAL_WORDS = {
+            1: makeWordEntries(`apple|سیب;ball|گیند;bird|پرندہ;cake|کیک;car|گاڑی;chair|کرسی;clock|گھڑی;corn|مکئی;cow|گائے;cup|پیالی;door|دروازہ;egg|انڈا;face|چہرہ;fan|پنکھا;farm|کھیت;flag|جھنڈا;flower|پھول;frog|مینڈک;gift|تحفہ;girl|لڑکی;grass|گھاس;hand|ہاتھ;head|سر;hen|مرغی;hill|پہاڑی;horse|گھوڑا;house|گھر;ice|برف;kite|پتنگ;lake|جھیل;leaf|پتا;lion|شیر;milk|دودھ;monkey|بندر;moon|چاند;mouse|چوہا;nose|ناک;orange|سنترہ;owl|الو;park|باغ;pear|ناشپاتی;rabbit|خرگوش;rice|چاول;river|دریا;rose|گلاب;school|اسکول;seed|بیج;shoe|جوتا;star|ستارہ;table|میز;tiger|ببر شیر;water|پانی;wheel|پہیہ;wind|ہوا;window|کھڑکی;yellow|پیلا;zebra|زیبرا;baby|بچہ;bread|روٹی;brush|برش;clean|صاف;clown|مسخرہ;dance|ناچنا;drink|پینا;earth|زمین;family|خاندان;happy|خوش;heart|دل;juice|رس;light|روشنی;night|رات;paper|کاغذ;queen|ملکہ;quiet|خاموش;smile|مسکرانا;snack|ہلکی غذا;sock|موزہ;spoon|چمچ;stick|چھڑی;store|دکان;sugar|چینی;thank|شکریہ;three|تین;uncle|چچا;under|نیچے;watch|دیکھنا;white|سفید;write|لکھنا;young|نوجوان;zero|صفر;arm|بازو;bus|بس;ear|کان;eye|آنکھ;feet|پاؤں;key|چابی;king|بادشاہ;lip|ہونٹ;rain|بارش;ring|انگوٹھی`),
+            2: makeWordEntries(`across|پار;afraid|ڈرا ہوا;again|دوبارہ;animal|جانور;answer|جواب;around|اردگرد;awake|جاگتا ہوا;basket|ٹوکری;beach|ساحل;because|کیونکہ;before|پہلے;behind|پیچھے;better|بہتر;birthday|سالگرہ;blanket|کمبل;brother|بھائی;button|بٹن;candle|موم بتی;candy|ٹافی;circle|دائرہ;city|شہر;class|جماعت;climb|چڑھنا;cloudy|ابر آلود;color|رنگ;come|آنا;country|ملک;crayon|مومی رنگ;cross|عبور کرنا;danger|خطرہ;daughter|بیٹی;decide|فیصلہ کرنا;dinner|رات کا کھانا;dollar|ڈالر;dragon|اژدہا;dream|خواب;early|جلدی;easy|آسان;eight|آٹھ;elephant|ہاتھی;enough|کافی;every|ہر;fairy|پری;father|والد;feather|پر;field|میدان;fire|آگ;first|پہلا;forest|جنگل;friend|دوست;garden|باغیچہ;giraffe|زرافہ;globe|کرہ ارض;grandma|دادی;grandpa|دادا;guess|اندازہ لگانا;heavy|بھاری;hello|سلام;help|مدد;hungry|بھوک لگی;island|جزیرہ;jacket|جیکٹ;jungle|جنگل;kitchen|باورچی خانہ;laugh|ہنسنا;learn|سیکھنا;lemon|لیموں;letter|خط;little|چھوٹا;lunch|دوپہر کا کھانا;market|بازار;morning|صبح;mother|والدہ;mountain|پہاڑ;movie|فلم;music|موسیقی;number|نمبر;office|دفتر;outside|باہر;people|لوگ;picnic|سیر;planet|سیارہ;pocket|جیب;purple|جامنی;rainbow|قوس قزح;read|پڑھنا;river|دریا;school|اسکول;second|دوسرا;sister|بہن;sleepy|نیند میں;spring|بہار;summer|گرمی;teacher|استاد;turtle|کچھوا;village|گاؤں;weather|موسم;weekend|ہفتہ وار چھٹی;winter|سردی;woman|عورت`),
+            3: makeWordEntries(`adventure|مہم;afternoon|دوپہر;alphabet|حروف تہجی;already|پہلے ہی;amazing|حیرت انگیز;ancient|قدیم;another|ایک اور;arrive|پہنچنا;attention|توجہ;autumn|خزاں;balance|توازن;beautiful|خوبصورت;bicycle|سائیکل;between|درمیان;blanket|کمبل;bright|روشن;building|عمارت;butterfly|تتلی;captain|کپتان;careful|محتاط;carry|اٹھانا;celebrate|منانا;century|صدی;certain|یقینی;clothes|کپڑے;collect|جمع کرنا;complete|مکمل;concert|موسیقی کا پروگرام;continue|جاری رکھنا;corner|کونا;correct|درست;cousin|کزن;crowded|بھیڑ بھاڑ والا;curious|متجسس;dancing|رقص;delicious|لذیذ;describe|بیان کرنا;different|مختلف;difficult|مشکل;discuss|بات چیت کرنا;distance|فاصلہ;drawing|تصویر سازی;during|کے دوران;eager|بے تاب;earthquake|زلزلہ;electric|برقی;engine|انجن;exercise|ورزش;excited|پرجوش;explain|سمجھانا;favorite|پسندیدہ;festival|تہوار;finally|آخرکار;forward|آگے;future|مستقبل;gentle|نرم;government|حکومت;group|گروہ;healthy|صحت مند;history|تاریخ;holiday|چھٹی;hospital|ہسپتال;important|اہم;increase|بڑھانا;information|معلومات;interesting|دلچسپ;journey|سفر;knowledge|علم;language|زبان;library|کتب خانہ;machine|مشین;message|پیغام;minute|منٹ;natural|قدرتی;neighbor|پڑوسی;notice|نوٹس;ocean|سمندر;ordinary|عام;organize|ترتیب دینا;peaceful|پرسکون;pencil|پنسل;picture|تصویر;possible|ممکن;practice|مشق;prepare|تیار کرنا;promise|وعدہ;protect|حفاظت کرنا;question|سوال;remember|یاد رکھنا;respect|احترام;response|جواب;sentence|جملہ;separate|الگ;special|خاص;straight|سیدھا;surprise|حیرت;tomorrow|کل;travel|سفر;visitor|مہمان;welcome|خوش آمدید`),
+            4: makeWordEntries(`ability|صلاحیت;accident|حادثہ;activity|سرگرمی;address|پتہ;adventure|مہم;agreement|معاہدہ;airport|ہوائی اڈہ;alphabetical|حروف تہجی کے مطابق;announce|اعلان کرنا;apartment|فلیٹ;argument|بحث;article|مضمون;astronaut|خلا باز;attention|توجہ;audience|سامعین;available|دستیاب;awkward|عجیب;beautiful|خوبصورت;behavior|رویہ;believe|یقین کرنا;benefit|فائدہ;biology|حیاتیات;calendar|کیلنڈر;calculate|حساب کرنا;camera|کیمرہ;campaign|مہم;category|قسم;ceremony|تقریب;chemical|کیمیائی;citizen|شہری;climate|آب و ہوا;clothing|لباس;collision|ٹکر;comfortable|آرام دہ;committee|کمیٹی;community|برادری;compare|موازنہ کرنا;compass|قطب نما;competition|مقابلہ;concentrate|توجہ دینا;conclusion|نتیجہ;condition|حالت;confident|پراعتماد;congratulate|مبارک دینا;conservation|تحفظ;continent|براعظم;convenient|آسان;creative|تخلیقی;creature|مخلوق;culture|ثقافت;curiosity|تجسس;decision|فیصلہ;decorate|سجانا;decrease|کم کرنا;delicate|نازک;democracy|جمہوریت;department|شعبہ;describe|بیان کرنا;design|ڈیزائن;develop|ترقی دینا;dictionary|لغت;disappear|غائب ہونا;discovery|دریافت;disease|بیماری;education|تعلیم;effective|موثر;electricity|بجلی;emergency|ہنگامی حالت;emotion|جذبہ;encourage|حوصلہ دینا;energy|توانائی;environment|ماحول;equipment|سامان;especially|خاص طور پر;excellent|عمدہ;exchange|تبادلہ;experiment|تجربہ;explanation|وضاحت;factory|کارخانہ;famous|مشہور;fiction|افسانہ;frequent|اکثر;generous|سخی;geography|جغرافیہ;graduate|فارغ التحصیل;guidance|رہنمائی;harvest|فصل کاٹنا;health|صحت;heritage|ورثہ;honest|ایمان دار;identify|شناخت کرنا;illustrate|تصویر سے واضح کرنا;imagine|تصور کرنا;improve|بہتر کرنا;industry|صنعت;influence|اثر;injury|چوٹ;insect|کیڑا;invent|ایجاد کرنا;investigate|تحقیق کرنا`),
+            5: makeWordEntries(`abbreviation|مخفف;abolition|خاتمہ;absolutely|بالکل;absorb|جذب کرنا;abstract|خلاصہ;abundant|وافر;accelerate|تیز کرنا;acceptable|قابل قبول;accessory|ضمنی چیز;accompany|ساتھ جانا;accomplishment|کامیابی;accordingly|اسی کے مطابق;acknowledge|تسلیم کرنا;activate|فعال کرنا;adaptation|مطابقت;adequate|کافی;administration|انتظامیہ;admirable|قابل تعریف;admission|داخلہ;adopt|اپنانا;advocate|حمایت کرنا;aesthetic|جمالیاتی;affordable|سستی قیمت کا;agriculture|زراعت;algebra|الجبرا;alliance|اتحاد;allocate|مختص کرنا;ambition|خواہش;amendment|ترمیم;amplify|بڑھانا;ancestor|آبا و اجداد;annual|سالانہ;apparent|واضح;applicant|درخواست گزار;appreciable|نمایاں;arithmetic|حساب;arrangement|انتظام;artificially|مصنوعی طور پر;assemble|جمع کرنا;assessment|جائزہ;astonishing|حیرت انگیز;atmosphere|فضا;attachment|منسلکہ;audience|سامعین;authentic|مستند;authority|اختیار;automatic|خودکار;available|دستیاب;average|اوسط;beneficial|فائدہ مند;biodiversity|حیاتیاتی تنوع;boundary|حد;calculation|حساب;campaign|مہم;candidate|امیدوار;capacity|صلاحیت;category|زمرہ;celebration|جشن;certificate|سرٹیفکیٹ;characteristic|خصوصیت;circulation|گردش;civilization|تہذیب;classification|درجہ بندی;climate|آب و ہوا;collaborate|مل کر کام کرنا;colleague|ساتھی;combination|امتزاج;comfortable|آرام دہ;commercial|تجارتی;communicate|رابطہ کرنا;community|برادری;comparison|موازنہ;competition|مقابلہ;complex|پیچیدہ;concentrate|توجہ مرکوز کرنا;conclusion|نتیجہ;condition|حالت;conference|کانفرنس;confidence|اعتماد;consequence|نتیجہ;conservation|تحفظ;considerable|قابل ذکر;consistent|مستقل;construction|تعمیر;contemporary|عصری;contribution|حصہ;conversation|گفتگو;cooperation|تعاون;courageous|بہادر;creative|تخلیقی;curiosity|تجسس;deficiency|کمی;demonstrate|ثابت کرنا;department|شعبہ;destination|منزل;determination|عزم;development|ترقی;difference|فرق;discovery|دریافت;discussion|گفتگو`)
+        };
+
+        Object.entries(ADDITIONAL_WORDS).forEach(([grade, words]) => {
+            SAFARI_WORD_BANK[grade].push(...words);
+        });
+
+        // Game State Variables
+        let currentGrade = 1;
+        let wordsSessionList = [];
+        let currentWordIndex = 0;
+        let currentWordObject = null;
+        let typedLetters = [];
+        let gameScore = 0;
+        let currentStreak = 0;
+        let mistakesMade = [];
+        let hintCountForWord = 0;
+        let isWordSolved = false;
+
+        // AudioContext Audio Synthesizer
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'success') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(554.37, audioCtx.currentTime + 0.1);
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.35);
+                } else if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.25);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                } else if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.06);
+                } else if (type === 'fanfare') {
+                    osc.type = 'triangle';
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const noteOsc = audioCtx.createOscillator();
+                        const noteGain = audioCtx.createGain();
+                        noteOsc.type = 'triangle';
+                        noteOsc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.1);
+                        noteGain.gain.setValueAtTime(0.1, audioCtx.currentTime + idx * 0.1);
+                        noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.1 + 0.2);
+                        noteOsc.connect(noteGain);
+                        noteGain.connect(audioCtx.destination);
+                        noteOsc.start(audioCtx.currentTime + idx * 0.1);
+                        noteOsc.stop(audioCtx.currentTime + idx * 0.1 + 0.2);
+                    });
+                }
+            } catch (e) {
+                console.log("Audio module system context locked.");
+            }
+        }
+
+        // Keyboard setup configurations
+        const keysRow1 = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"];
+        const keysRow2 = ["a", "s", "d", "f", "g", "h", "j", "k", "l"];
+        const keysRow3 = ["z", "x", "c", "v", "b", "n", "m", "⌫"];
+
+        function buildKeyboard() {
+            const r1 = document.getElementById("keyboard-row-1");
+            const r2 = document.getElementById("keyboard-row-2");
+            const r3 = document.getElementById("keyboard-row-3");
+            
+            r1.innerHTML = ""; r2.innerHTML = ""; r3.innerHTML = "";
+
+            keysRow1.forEach(k => r1.appendChild(createKeyElement(k)));
+            keysRow2.forEach(k => r2.appendChild(createKeyElement(k)));
+            keysRow3.forEach(k => r3.appendChild(createKeyElement(k)));
+        }
+
+        function createKeyElement(key) {
+            const btn = document.createElement("button");
+            btn.textContent = key.toUpperCase();
+            
+            if (key === "⌫") {
+                btn.className = "key-btn bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-3 py-3 rounded-xl text-sm flex-1 max-w-[60px] cursor-pointer";
+                btn.onclick = () => handleInputKey("backspace");
+            } else {
+                btn.className = "key-btn bg-slate-50 hover:bg-slate-100 border border-slate-200 font-bold p-3 rounded-xl text-base text-slate-700 flex-1 max-w-[45px] transition-all cursor-pointer text-center";
+                btn.onclick = () => handleInputKey(key);
+            }
+            return btn;
+        }
+
+        function selectGrade(gradeNum) {
+            playSound('click');
+            currentGrade = gradeNum;
+            const buttons = document.querySelectorAll("#menu-screen button.pop-card");
+            buttons.forEach((btn, idx) => {
+                if (idx + 1 === gradeNum) {
+                    btn.classList.add("ring-4", "ring-emerald-400", "scale-105");
+                } else {
+                    btn.classList.remove("ring-4", "ring-emerald-400", "scale-105");
+                }
+            });
+        }
+
+        function generateScrambledWord(word) {
+            if (word.length <= 1) return word;
+            let letters = word.split("");
+            let scrambled = "";
+            let attempts = 0;
+
+            while (attempts < 15) {
+                letters.sort(() => Math.random() - 0.5);
+                scrambled = letters.join("");
+                if (scrambled !== word) break;
+                attempts++;
+            }
+            return scrambled;
+        }
+
+        function startGame() {
+            playSound('click');
+            const fullBank = SAFARI_WORD_BANK[currentGrade];
+            wordsSessionList = [...fullBank].sort(() => Math.random() - 0.5);
+            
+            currentWordIndex = 0;
+            gameScore = 0;
+            currentStreak = 0;
+            mistakesMade = [];
+
+            document.getElementById("menu-screen").classList.add("hidden");
+            document.getElementById("game-header").classList.remove("hidden");
+            document.getElementById("game-screen").classList.remove("hidden");
+            document.getElementById("continue-screen").classList.add("hidden");
+            document.getElementById("summary-screen").classList.add("hidden");
+
+            document.getElementById("level-badge").textContent = `Grade ${currentGrade}`;
+            updateHeaderStats();
+            buildKeyboard();
+            loadWord();
+        }
+
+        function loadWord() {
+            currentWordObject = wordsSessionList[currentWordIndex];
+            const currentWordEn = currentWordObject.en.toLowerCase();
+            typedLetters = [];
+            hintCountForWord = 0;
+            isWordSolved = false;
+            
+            // Generate and present scrambled version
+            const scrambled = generateScrambledWord(currentWordEn);
+            document.getElementById("scrambled-display").textContent = scrambled.toUpperCase().split("").join(" ");
+
+            // Reset Urdu Translation Box
+            const urduBox = document.getElementById("urdu-meaning-box");
+            urduBox.classList.add("hidden", "opacity-0");
+            document.getElementById("urdu-meaning-text").textContent = "";
+
+            // Restore Keyboard and Check/Clear controls UI
+            document.getElementById("keyboard-container").classList.remove("opacity-20", "pointer-events-none");
+            document.getElementById("action-controls-box").classList.remove("hidden");
+            document.getElementById("next-word-box").classList.add("hidden");
+
+            // Reset hint panel states
+            document.getElementById("hint-btn").classList.remove("hidden");
+            document.getElementById("hint-text").classList.add("hidden");
+            document.getElementById("hint-text").textContent = "";
+
+            renderWordSlots();
+            updateProgressBar();
+            
+            setTimeout(() => {
+                speakWord();
+            }, 400);
+        }
+
+        function renderWordSlots() {
+            const container = document.getElementById("word-display-container");
+            container.innerHTML = "";
+            const currentWordEn = currentWordObject.en;
+
+            for (let i = 0; i < currentWordEn.length; i++) {
+                const box = document.createElement("div");
+                box.className = "w-12 h-14 border-3 border-slate-300 rounded-xl flex items-center justify-center text-2xl title-font uppercase transition-all bg-slate-50";
+                
+                if (typedLetters[i]) {
+                    box.textContent = typedLetters[i];
+                    box.className = "w-12 h-14 border-3 border-emerald-400 rounded-xl flex items-center justify-center text-2xl title-font uppercase bg-emerald-50 text-emerald-600 scale-105 transform duration-100";
+                }
+                container.appendChild(box);
+            }
+        }
+
+        function handleInputKey(key) {
+            if (isWordSolved) return; // Ignore updates if word solved
+            playSound('click');
+            const currentWordEn = currentWordObject.en;
+            if (key === "backspace") {
+                if (typedLetters.length > 0) {
+                    typedLetters.pop();
+                }
+            } else if (typedLetters.length < currentWordEn.length) {
+                typedLetters.push(key.toLowerCase());
+            }
+            renderWordSlots();
+        }
+
+        function clearCurrentWord() {
+            if (isWordSolved) return;
+            playSound('click');
+            typedLetters = [];
+            renderWordSlots();
+        }
+
+        function speakWord() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(currentWordObject.en);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.8;
+                window.speechSynthesis.speak(utterance);
+            } else {
+                showToast("🔊 Speech synthesis profile locked.", "⚠️");
+            }
+        }
+
+        function revealHint() {
+            playSound('click');
+            hintCountForWord++;
+            const currentWordEn = currentWordObject.en;
+            
+            if (hintCountForWord === 1) {
+                const firstLetter = currentWordEn[0].toUpperCase();
+                const lastLetter = currentWordEn[currentWordEn.length - 1].toUpperCase();
+
+                if (currentWordEn.length > 5) {
+                    const middleLetter = currentWordEn[Math.floor(currentWordEn.length / 2)].toUpperCase();
+                    document.getElementById("hint-text").textContent = `The secret word starts with "${firstLetter}", has "${middleLetter}" in the middle, and ends with "${lastLetter}"!`;
+                } else {
+                    document.getElementById("hint-text").textContent = `The secret word starts with "${firstLetter}" and ends with "${lastLetter}"!`;
+                }
+            }
+
+            document.getElementById("hint-btn").classList.add("hidden");
+            document.getElementById("hint-text").classList.remove("hidden");
+        }
+
+        function submitGuess() {
+            if (isWordSolved) return;
+            const guess = typedLetters.join("").toLowerCase();
+            const container = document.getElementById("word-display-container");
+            const currentWordEn = currentWordObject.en.toLowerCase();
+
+            if (guess.length === 0) {
+                showToast("Type or tap letters first!", "🐾");
+                return;
+            }
+
+            if (guess === currentWordEn) {
+                isWordSolved = true;
+                playSound('success');
+                showToast("Fantastic Job! 🎉", "✨");
+                
+                // Show Urdu translation beneath the scrambled text card
+                const urduBox = document.getElementById("urdu-meaning-box");
+                document.getElementById("urdu-meaning-text").textContent = currentWordObject.ur;
+                urduBox.classList.remove("hidden");
+                setTimeout(() => {
+                    urduBox.classList.remove("opacity-0");
+                }, 10);
+
+                let pointsEarned = 10;
+                if (hintCountForWord > 0) pointsEarned = 5;
+
+                gameScore += pointsEarned;
+                currentStreak++;
+                
+                container.classList.add("scale-105", "transition-transform");
+                
+                // Hide virtual keys/check buttons and prompt explicitly for the manual "Next Word" trigger
+                document.getElementById("keyboard-container").classList.add("opacity-20", "pointer-events-none");
+                document.getElementById("action-controls-box").classList.add("hidden");
+                document.getElementById("next-word-box").classList.remove("hidden");
+
+            } else {
+                playSound('error');
+                showToast("Try again! Mix the letters correctly 🦁", "🌿");
+                currentStreak = 0;
+                
+                if (!mistakesMade.includes(currentWordEn)) {
+                    mistakesMade.push(currentWordEn);
+                }
+
+                container.classList.add("animate-shake");
+                setTimeout(() => {
+                    container.classList.remove("animate-shake");
+                }, 450);
+            }
+            updateHeaderStats();
+        }
+
+        function advanceWord() {
+            playSound('click');
+            currentWordIndex++;
+            
+            // Check if full 100 words level limit is reached
+            if (currentWordIndex >= wordsSessionList.length) {
+                endSafariSession();
+                return;
+            }
+
+            // Trigger checkpoint break screen if a clean multiple of 10 words has been finished
+            if (currentWordIndex > 0 && currentWordIndex % 10 === 0) {
+                showContinueScreen();
+            } else {
+                loadWord();
+            }
+        }
+
+        function showContinueScreen() {
+            playSound('fanfare');
+            document.getElementById("game-screen").classList.add("hidden");
+            document.getElementById("game-header").classList.add("hidden");
+            document.getElementById("continue-screen").classList.remove("hidden");
+            
+            document.getElementById("continue-progress-text").textContent = `${currentWordIndex}`;
+        }
+
+        function clickContinueNextRound() {
+            playSound('click');
+            document.getElementById("continue-screen").classList.add("hidden");
+            document.getElementById("game-header").classList.remove("hidden");
+            document.getElementById("game-screen").classList.remove("hidden");
+            
+            loadWord();
+        }
+
+        function updateProgressBar() {
+            const currentSubIndex = currentWordIndex % 10;
+            const pct = (currentSubIndex / 10) * 100;
+            document.getElementById("progress-bar").style.width = `${pct}%`;
+            document.getElementById("progress-val").textContent = `${currentSubIndex + 1}/10`;
+        }
+
+        function updateHeaderStats() {
+            document.getElementById("score-val").textContent = gameScore;
+            document.getElementById("streak-val").textContent = `${currentStreak} 🔥`;
+        }
+
+        function endSafariSession() {
+            playSound('fanfare');
+            document.getElementById("game-screen").classList.add("hidden");
+            document.getElementById("game-header").classList.add("hidden");
+            document.getElementById("continue-screen").classList.add("hidden");
+            document.getElementById("summary-screen").classList.remove("hidden");
+
+            const correctCount = wordsSessionList.length - mistakesMade.length;
+            document.getElementById("summary-correct").textContent = `${correctCount} / ${wordsSessionList.length}`;
+            document.getElementById("summary-score").textContent = gameScore;
+
+            const starRow = document.getElementById("star-rating-row");
+            if (mistakesMade.length === 0) {
+                starRow.textContent = "⭐⭐⭐";
+            } else if (mistakesMade.length <= 15) {
+                starRow.textContent = "⭐⭐🌿";
+            } else {
+                starRow.textContent = "⭐🌿🌿";
+            }
+
+            const reviewPanel = document.getElementById("review-panel");
+            const listElement = document.getElementById("mistakes-list");
+            listElement.innerHTML = "";
+
+            if (mistakesMade.length > 0) {
+                reviewPanel.classList.remove("hidden");
+                mistakesMade.forEach(word => {
+                    const span = document.createElement("span");
+                    span.className = "bg-white px-2 py-1 rounded-md border border-rose-200 cursor-pointer hover:bg-rose-100 transition-colors";
+                    span.textContent = word;
+                    span.onclick = () => {
+                        if ('speechSynthesis' in window) {
+                            const u = new SpeechSynthesisUtterance(word);
+                            window.speechSynthesis.speak(u);
+                        }
+                    };
+                    listElement.appendChild(span);
+                });
+            } else {
+                reviewPanel.classList.add("hidden");
+            }
+        }
+
+        function goHome() {
+            playSound('click');
+            document.getElementById("menu-screen").classList.remove("hidden");
+            document.getElementById("game-header").classList.add("hidden");
+            document.getElementById("game-screen").classList.add("hidden");
+            document.getElementById("continue-screen").classList.add("hidden");
+            document.getElementById("summary-screen").classList.add("hidden");
+            selectGrade(currentGrade);
+        }
+
+        function restartCurrentSafari() {
+            startGame();
+        }
+
+        function showToast(msg, icon) {
+            const toast = document.getElementById("feedback-toast");
+            document.getElementById("toast-text").textContent = msg;
+            document.getElementById("toast-icon").textContent = icon || "✨";
+
+            if (msg.includes("Fantastic") || msg.includes("Job")) {
+                toast.className = "fixed bottom-8 px-6 py-3 rounded-2xl font-bold text-white shadow-lg pointer-events-none transform transition-all duration-300 flex items-center gap-2 bg-emerald-500 translate-y-0 opacity-100";
+            } else {
+                toast.className = "fixed bottom-8 px-6 py-3 rounded-2xl font-bold text-white shadow-lg pointer-events-none transform transition-all duration-300 flex items-center gap-2 bg-amber-500 translate-y-0 opacity-100";
+            }
+
+            setTimeout(() => {
+                toast.className = "fixed bottom-8 px-6 py-3 rounded-2xl font-bold text-white shadow-lg pointer-events-none transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2";
+            }, 2000);
+        }
+
+        // Support desktop physical key inputs
+        document.addEventListener("keydown", (e) => {
+            if (!document.getElementById("game-screen").classList.contains("hidden")) {
+                const key = e.key.toLowerCase();
+                if (/^[a-z]$/.test(key)) {
+                    handleInputKey(key);
+                } else if (e.key === "Backspace") {
+                    handleInputKey("backspace");
+                } else if (e.key === "Enter") {
+                    if (isWordSolved) {
+                        advanceWord();
+                    } else {
+                        submitGuess();
+                    }
+                }
+            }
+        });
+
+        window.onload = () => {
+            selectGrade(1);
+        };
+    </script>
+</body>
+</html>
